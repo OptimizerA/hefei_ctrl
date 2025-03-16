@@ -91,7 +91,7 @@
 
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import pool from '../../lib/db'; // 假设你已经正确配置了 PostgreSQL 连接池
+import pool from '../../lib/db';
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -111,6 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'SELECT * FROM "user" WHERE "UserName" = $1 AND "Password" = $2',
         [username, password]
       );
+      console.log('User query result:', userResult.rows);
     } catch (error) {
       console.error('User query failed:', error);
       return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -119,7 +120,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (userResult.rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Authentication failed' });
     }
-
 
     const user = userResult.rows[0];
     const experimentGroup = JSON.parse(user.ExperimentGroup);
@@ -137,6 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'SELECT "Prompts" FROM prompt WHERE "PromptID" = $1',
         [versionValue + 1]
       );
+      console.log('Prompt query result:', promptResult.rows);
     } catch (error) {
       console.error('Prompt query failed:', error);
       return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -149,6 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       authResult = await pool.query(
         'SELECT "Auth_Code" FROM GptAuth WHERE "Auth_ID" = 1'
       );
+      console.log('GptAuth query result:', authResult.rows);
     } catch (error) {
       console.error('GptAuth query failed:', error);
       return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -162,11 +164,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'SELECT "CourseContent" FROM course WHERE "CourseID" = $1',
         [usercontentID]
       );
+      console.log('Course query result:', courseResult.rows);
     } catch (error) {
       console.error('Course query failed:', error);
       return res.status(500).json({ success: false, message: 'Internal server error' });
     }
     const courseprofile = courseResult.rows.length > 0 ? courseResult.rows[0].CourseContent : null;
+
     let CID = '';
     let redirectUrl = '';
     if (versionValue !== 1) {
