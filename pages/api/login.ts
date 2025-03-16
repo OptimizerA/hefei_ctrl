@@ -170,7 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ success: false, message: 'Internal server error' });
     }
     const courseprofile = courseResult.rows.length > 0 ? courseResult.rows[0].CourseContent : null;
-
+    
     let CID = '';
     let redirectUrl = '';
     if (versionValue !== 1) {
@@ -186,8 +186,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       redirectUrl = "url associated with v1 gpt";
     }
-
+    console.log('JWT_SECRET_KEY:', process.env.JWT_SECRET_KEY);
     const secretKey = process.env.JWT_SECRET_KEY as string;
+    if (!secretKey) {
+      console.error('JWT_SECRET_KEY is not set');
+      throw new Error('JWT_SECRET_KEY is not set');
+    }
     const token = jwt.sign(
       {
         username: user.UserName,
