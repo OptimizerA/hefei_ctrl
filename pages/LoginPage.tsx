@@ -72,7 +72,7 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       // sessionStorage.setItem('jwtToken', data.token); // 保存 token
       // 重定向用户
       // window.location.href = `${data.redirect}?token=${data.token}`;
-      window.location.href = `http://localhost:3001?token=${data.token}`;
+      window.location.href = `https://gptversion-6lugs5wxy-kejun-wangs-projects.vercel.app?token=${data.token}`;
     } else {
       setError('Failed to fetch user ID');
     }
