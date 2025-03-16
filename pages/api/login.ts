@@ -105,78 +105,106 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { username, password } = req.body;
 
     // 查询用户信息
-    const userResult = await pool.query(
-      'SELECT * FROM "user" WHERE "UserName" = $1 AND "Password" = $2',
-      [username, password]
-    );
+    let userResult;
+    try {
+      userResult = await pool.query(
+        'SELECT * FROM "user" WHERE "UserName" = $1 AND "Password" = $2',
+        [username, password]
+      );
+    } catch (error) {
+      console.error('User query failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
 
-    if (userResult.rows.length > 0) {
-      const user = userResult.rows[0];
-      const experimentGroup = JSON.parse(user.ExperimentGroup);
-      const modifiedPassword = user.Password;
-      const userProfile = user.Profile;
-      const usercontentID = user.CourseID || 0;
-      const searchValue = experimentGroup["2024Spring_Socratic"];
-      const gptValue = experimentGroup["2024Spring_Gamified"];
-      const versionValue = experimentGroup["2024Spring_SocraticVersion"] || 0;
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'Authentication failed' });
+    }
 
-      // 查询 prompt
-      const promptResult = await pool.query(
+
+    const user = userResult.rows[0];
+    const experimentGroup = JSON.parse(user.ExperimentGroup);
+    const modifiedPassword = user.Password;
+    const userProfile = user.Profile;
+    const usercontentID = user.CourseID || 0;
+    const searchValue = experimentGroup["2024Spring_Socratic"];
+    const gptValue = experimentGroup["2024Spring_Gamified"];
+    const versionValue = experimentGroup["2024Spring_SocraticVersion"] || 0;
+
+    // 查询 prompt
+    let promptResult;
+    try {
+      promptResult = await pool.query(
         'SELECT "Prompts" FROM prompt WHERE "PromptID" = $1',
         [versionValue + 1]
       );
-      const userprompt = promptResult.rows.length > 0 ? promptResult.rows[0].Prompts : null;
+    } catch (error) {
+      console.error('Prompt query failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+    const userprompt = promptResult.rows.length > 0 ? promptResult.rows[0].Prompts : null;
 
-      // 查询 GptAuth
-      const authResult = await pool.query(
+    // 查询 GptAuth
+    let authResult;
+    try {
+      authResult = await pool.query(
         'SELECT "Auth_Code" FROM GptAuth WHERE "Auth_ID" = 1'
       );
-      const authValue = authResult.rows.length > 0 ? authResult.rows[0].Auth_Code : null;
+    } catch (error) {
+      console.error('GptAuth query failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+    const authValue = authResult.rows.length > 0 ? authResult.rows[0].Auth_Code : null;
 
-      // 查询 course
-      const courseResult = await pool.query(
+    // 查询 course
+    let courseResult;
+    try {
+      courseResult = await pool.query(
         'SELECT "CourseContent" FROM course WHERE "CourseID" = $1',
         [usercontentID]
       );
-      const courseprofile = courseResult.rows.length > 0 ? courseResult.rows[0].CourseContent : null;
-
-      let CID = '';
-      let redirectUrl = '';
-      if (versionValue !== 1) {
-        if (versionValue === 2) {
-          redirectUrl = 'url associated with v2 gpt';
-        } else if (versionValue === 3) {
-          redirectUrl = 'url associated with v3 gpt';
-        } else if (versionValue === 4) {
-          redirectUrl = 'url associated with v3 gpt';
-        } else {
-          redirectUrl = 'url associated with v3 gpt ';
-        }
-      } else {
-        redirectUrl = "url associated with v1 gpt";
-      }
-
-      const secretKey = process.env.JWT_SECRET_KEY as string;
-      const token = jwt.sign(
-        {
-          username: user.UserName,
-          password: modifiedPassword,
-          experimentGroup: experimentGroup,
-          gptAuth: authValue,
-          profile: userProfile,
-          prompt: userprompt,
-          course: courseprofile
-        },
-        secretKey,
-        { expiresIn: '24h' }
-      );
-
-      res.status(200).json({ success: true, token, redirect: redirectUrl, CID: CID });
-    } else {
-      res.status(401).json({ success: false, message: 'Authentication failed' });
+    } catch (error) {
+      console.error('Course query failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+    const courseprofile = courseResult.rows.length > 0 ? courseResult.rows[0].CourseContent : null;
+    let CID = '';
+    let redirectUrl = '';
+    if (versionValue !== 1) {
+      if (versionValue === 2) {
+        redirectUrl = 'url associated with v2 gpt';
+      } else if (versionValue === 3) {
+        redirectUrl = 'url associated with v3 gpt';
+      } else if (versionValue === 4) {
+        redirectUrl = 'url associated with v3 gpt';
+      } else {
+        redirectUrl = 'url associated with v3 gpt ';
+      }
+    } else {
+      redirectUrl = "url associated with v1 gpt";
+    }
+
+    const secretKey = process.env.JWT_SECRET_KEY as string;
+    const token = jwt.sign(
+      {
+        username: user.UserName,
+        password: modifiedPassword,
+        experimentGroup: experimentGroup,
+        gptAuth: authValue,
+        profile: userProfile,
+        prompt: userprompt,
+        course: courseprofile
+      },
+      secretKey,
+      { expiresIn: '24h' }
+    );
+
+    res.status(200).json({ success: true, token, redirect: redirectUrl, CID: CID });
   } catch (error) {
     console.error('Database connection or query failed:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 }
