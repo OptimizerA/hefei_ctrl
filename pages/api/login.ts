@@ -202,7 +202,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { expiresIn: '24h' }
     );
 
-    res.status(200).json({ success: true, token, redirect: redirectUrl, CID: CID });
+    return res.status(200).json({ success: true, token, redirect: redirectUrl, CID: CID });
   } catch (error) {
     console.error('Database connection or query failed:', error);
     if (error instanceof Error) {
