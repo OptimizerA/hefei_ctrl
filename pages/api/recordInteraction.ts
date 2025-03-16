@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const params = [UserID, ButtonName, UserLogTime, GPTMessages, Note, QuestionID || null];
       const result = await pool.query(query, params);
 
-      if (result.rowCount > 0) {
+      if (result.rowCount !== null && result.rowCount > 0) {
         res.status(200).json({ success: true, message: 'Data inserted successfully' });
       } else {
         throw new Error('Failed to insert data');
