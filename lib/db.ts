@@ -1,4 +1,4 @@
-import mysql from 'mysql2/promise';
+// import mysql from 'mysql2/promise';
 import { Pool } from 'pg';
 
 // // 创建数据库连接池
