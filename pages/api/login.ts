@@ -201,7 +201,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       secretKey,
       { expiresIn: '24h' }
     );
-
+    console.log('Generated token:', token);
+    console.log('Redirect URL:', redirectUrl);
     return res.status(200).json({ success: true, token, redirect: redirectUrl, CID: CID });
   } catch (error) {
     console.error('Database connection or query failed:', error);
